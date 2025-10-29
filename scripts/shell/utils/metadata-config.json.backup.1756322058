@@ -1,0 +1,29 @@
+{
+  "nonWildcardTypes": ["LightningComponentBundle", "StandardValueSet"],
+  "unsupportedTypes": [
+    "ExtlClntAppConfigurablePolicies",
+    "ExtlClntAppPushConfigurablePolicies",
+    "ExtlClntAppSamlConfigurablePolicies",
+    "extlclntappnotificationsettings"
+  ],
+  "problematicTypes": [
+    "MktDatalakeSrcKeyQualifier",
+    "ExternalAuthIdentityProvider",
+    "UiFormatSpecificationSet",
+    "CustomObjectTranslation",
+    "OauthTokenExchangeHandler"
+  ],
+  "requiresExplicitMembers": {
+    "LightningComponentBundle": {
+      "reason": "Salesforce API doesn't support wildcard retrieval for LWCs",
+      "discovered": "2025-01",
+      "workaround": "explicit_listing"
+    },
+    "StandardValueSet": {
+      "reason": "Requires explicit member names",
+      "discovered": "2024-06",
+      "workaround": "explicit_listing"
+    }
+  },
+  "notes": "Configuration for metadata types requiring special handling during retrieval"
+}

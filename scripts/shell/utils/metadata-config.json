@@ -1,0 +1,63 @@
+{
+  "nonWildcardTypes": ["LightningComponentBundle", "StandardValueSet"],
+  "unsupportedTypes": [
+    "ExtlClntAppConfigurablePolicies",
+    "ExtlClntAppPushConfigurablePolicies",
+    "ExtlClntAppSamlConfigurablePolicies",
+    "extlclntappnotificationsettings"
+  ],
+  "problematicTypes": [
+    "MktDatalakeSrcKeyQualifier",
+    "ExternalAuthIdentityProvider",
+    "UiFormatSpecificationSet",
+    "CustomObjectTranslation",
+    "OauthTokenExchangeHandler"
+  ],
+  "requiresExplicitMembers": {
+    "LightningComponentBundle": {
+      "reason": "Salesforce API doesn't support wildcard retrieval for LWCs",
+      "discovered": "2025-01",
+      "workaround": "explicit_listing"
+    },
+    "StandardValueSet": {
+      "reason": "Requires explicit member names",
+      "discovered": "2024-06",
+      "workaround": "explicit_listing"
+    },
+    "CustomObject": {
+      "reason": "Standard objects filtered out by SF CLI in source format",
+      "discovered": "2025-01",
+      "workaround": "dynamic_discovery_with_explicit_listing"
+    },
+    "Report": {
+      "reason": "Folder-based metadata doesn't work well with wildcard retrieval via Metadata API",
+      "discovered": "2025-09",
+      "workaround": "soql_discovery_with_explicit_listing",
+      "note": "1018+ reports exist in org but only 1 retrieved with wildcard approach"
+    },
+    "Dashboard": {
+      "reason": "Folder-based metadata doesn't work well with wildcard retrieval via Metadata API",
+      "discovered": "2025-09",
+      "workaround": "soql_discovery_with_explicit_listing",
+      "note": "58+ dashboards exist in org but likely few retrieved with wildcard approach"
+    }
+  },
+  "standardObjects": {
+    "enabled": true,
+    "discoveryMode": "dynamic",
+    "explicitList": [
+      "Account",
+      "Opportunity",
+      "Contact",
+      "Lead",
+      "Case",
+      "User",
+      "Product2",
+      "Pricebook2",
+      "PricebookEntry"
+    ],
+    "reason": "Standard objects need explicit listing to avoid SF CLI filtering in source format retrieval",
+    "note": "explicitList is now fallback only - primary method uses dynamic discovery from sf org list metadata"
+  },
+  "notes": "Configuration for metadata types requiring special handling during retrieval"
+}
