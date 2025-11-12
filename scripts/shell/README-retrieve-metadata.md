@@ -7,7 +7,7 @@ This directory contains a suite of scripts for comprehensive Salesforce metadata
 ### Basic Usage
 
 ```bash
-# Retrieve all metadata from production org
+# Retrieve all metadata from production org (default: removes hidden managed package content)
 ./retrieve-all-metadata.sh -o "PROD SOLVD"
 
 # Retrieve from sandbox with extended timeout
@@ -15,6 +15,9 @@ This directory contains a suite of scripts for comprehensive Salesforce metadata
 
 # Dry run to see what would be retrieved
 ./retrieve-all-metadata.sh -o my-org --dry-run
+
+# Keep managed package content (opt-out from automatic removal)
+./retrieve-all-metadata.sh -o "PROD SOLVD" --keep-managed-packages
 ```
 
 ### Prerequisites
@@ -58,6 +61,7 @@ This directory contains a suite of scripts for comprehensive Salesforce metadata
 - Detailed progress reporting
 - Backup creation before modifications
 - Extensive validation and cleanup
+- Automatic managed package content removal (with opt-out)
 
 ### ✅ DevOps Optimized
 
@@ -79,6 +83,9 @@ This directory contains a suite of scripts for comprehensive Salesforce metadata
 
 # Skip packages and post-processing
 ./retrieve-all-metadata.sh -o sandbox --skip-packages --skip-postprocess
+
+# Keep managed package content (preserve hidden stub files)
+./retrieve-all-metadata.sh -o prod --keep-managed-packages
 ```
 
 ### Individual Utilities
@@ -175,6 +182,56 @@ This retrieval system complements your existing deployment scripts:
 2. **Build** deployment packages with `build.sh`
 3. **Deploy** to target orgs with `deploy.sh`
 
+## Managed Package Content Handling
+
+### Automatic Removal (Default Behavior)
+
+By default, the retrieval process automatically removes hidden managed package content during post-processing. This keeps your repository clean by removing ~235 placeholder components that appear as stub files containing only `hidden;` or `(hidden)`.
+
+**What Gets Removed:**
+
+- LWC components with all files hidden (e.g., `refreshPump`, `infoDialogManager`)
+- Aura components with all files hidden
+- Other component types where ALL files contain only placeholder content
+
+**Safety Guarantees:**
+
+- Only removes entire component directories where ALL files are hidden
+- Never removes individual files
+- Skips components with any legitimate (non-hidden) files
+- Complete audit trail in logs
+
+### Preserving Managed Package Content
+
+To preserve hidden managed package content, use the `--keep-managed-packages` flag:
+
+```bash
+# Keep all managed package content
+./retrieve-all-metadata.sh -o "PROD SOLVD" --keep-managed-packages
+```
+
+**When to use this flag:**
+
+- Auditing what managed packages are installed
+- Investigating managed package components
+- Comparing managed package versions across orgs
+- Debugging managed package-related issues
+
+### Removal Reports
+
+After retrieval, check the logs for detailed removal reports:
+
+```
+logs/retrieval-summary-<timestamp>.txt
+```
+
+The report includes:
+
+- Detection statistics (how many hidden components found)
+- Removal details (which components were removed)
+- Skipped components (if any had mixed hidden/non-hidden files)
+- Summary statistics (total components, files, size freed)
+
 ## Best Practices
 
 ### For Production Orgs
@@ -183,6 +240,7 @@ This retrieval system complements your existing deployment scripts:
 - Use the `--dry-run` flag to preview actions
 - Schedule retrievals during low-usage periods
 - Monitor log files for any partial failures
+- Review managed package removal reports after retrieval
 
 ### For Development Workflow
 

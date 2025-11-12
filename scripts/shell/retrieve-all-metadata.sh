@@ -34,6 +34,7 @@ PARALLEL=false
 SKIP_PACKAGES=false
 SKIP_POSTPROCESS=false
 CLEAN_START=false
+KEEP_MANAGED_PACKAGES=false
 MANIFEST_DIR="manifests"
 
 # Color codes for output
@@ -56,6 +57,7 @@ print_usage() {
     echo "   --parallel       Run chunk retrievals in parallel (faster but may fail)"
     echo "   --skip-packages  Skip retrieval of installed packages"
     echo "   --skip-postprocess Skip post-processing of metadata"
+    echo "   --keep-managed-packages Preserve hidden managed package content (default: remove)"
     echo ""
     echo "   --clean-start    Remove existing metadata before retrieval"
     echo "   -h, --help       Show this help message"
@@ -65,6 +67,7 @@ print_usage() {
     echo "   $0 -o my-sandbox -w 120"
     echo "   $0 -o dev-org --dry-run"
     echo "   $0 -o prod --parallel --skip-packages"
+    echo "   $0 -o prod --keep-managed-packages"
     echo
 }
 
@@ -226,6 +229,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --clean-start)
             CLEAN_START=true
+            shift
+            ;;
+        --keep-managed-packages)
+            KEEP_MANAGED_PACKAGES=true
             shift
             ;;
         -h|--help)
@@ -508,16 +515,21 @@ postprocess_metadata() {
         log_info "Skipping post-processing (--skip-postprocess specified)"
         return 0
     fi
-    
+
     log_info "Step 5: Post-processing retrieved metadata"
-    
+
     local cmd="$UTILS_DIR/post-process-metadata.sh -d force-app"
-    
+
+    # Add --keep-managed-packages flag if set
+    if [[ "$KEEP_MANAGED_PACKAGES" == true ]]; then
+        cmd="$cmd --keep-managed-packages"
+    fi
+
     if [[ "$DRY_RUN" == true ]]; then
         echo "  [DRY RUN] Would execute: $cmd"
         return 0
     fi
-    
+
     if ! bash -c "$cmd"; then
         log_warning "Post-processing completed with warnings"
     else
@@ -629,6 +641,7 @@ main() {
     echo "  Parallel: $PARALLEL"
     echo "  Skip Packages: $SKIP_PACKAGES"
     echo "  Skip Post-process: $SKIP_POSTPROCESS"
+    echo "  Keep Managed Packages: $KEEP_MANAGED_PACKAGES"
     echo "  Clean Start: $CLEAN_START"
     echo ""
     

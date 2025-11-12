@@ -1,6 +1,0 @@
-{
-  "result": {
-    "totalSize": 1,
-    "records": [{ "Id": "033000000000000AAA", "SubscriberPackage": { "Name": "MockPackage" } }]
-  }
-}

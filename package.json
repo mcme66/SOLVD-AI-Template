@@ -22,6 +22,7 @@
     "retrieve:postprocess": "./scripts/shell/utils/post-process-metadata.sh"
   },
   "devDependencies": {
+    "@eslint/js": "^9.12.0",
     "@lwc/eslint-plugin-lwc": "^3.1.0",
     "@prettier/plugin-xml": "^3.4.1",
     "@salesforce/eslint-config-lwc": "^4.0.0",
@@ -44,7 +45,7 @@
       "eslint"
     ],
     "**/lwc/**": [
-        "sfdx-lwc-jest -- --bail --findRelatedTests --passWithNoTests"
+      "sfdx-lwc-jest -- --bail --findRelatedTests --passWithNoTests"
     ]
   }
 }
