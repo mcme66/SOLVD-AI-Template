@@ -5,6 +5,7 @@
   "description": "Salesforce App",
   "scripts": {
     "build": "./scripts/shell/build.sh",
+    "clean-managed-packages": "./scripts/shell/clean-managed-packages.sh",
     "deploy": "./scripts/shell/deploy.sh",
     "lint": "eslint **/{aura,lwc}/**/*.js",
     "test": "npm run test:unit",

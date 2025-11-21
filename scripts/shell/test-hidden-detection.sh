@@ -46,7 +46,7 @@ is_hidden_file() {
         return 1
     fi
 
-    local file_size=$(wc -c < "$file" 2>/dev/null || echo "999")
+    local file_size=$(wc -c < "$file" 2>/dev/null | tr -d ' ' || echo "999")
     if [[ $file_size -gt 10 ]]; then
         return 1
     fi

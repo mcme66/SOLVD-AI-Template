@@ -88,9 +88,21 @@ log_with_timestamp() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# Bash version check (informational only - script is bash 3.x compatible)
+check_bash_version() {
+    local bash_version="${BASH_VERSION%%(*}"
+    local major_version="${bash_version%%.*}"
+
+    if [[ $major_version -lt 4 ]]; then
+        log_with_timestamp "Note: Running on bash $BASH_VERSION (bash 3.x detected)"
+        log_with_timestamp "      This script is fully compatible with bash 3.x"
+    fi
+}
+
 log_with_timestamp "===================================================================="
 log_with_timestamp "Post-Processing Retrieved Metadata"
 log_with_timestamp "===================================================================="
+check_bash_version
 log_with_timestamp "Metadata directory: $METADATA_DIR"
 log_with_timestamp "Report file: $REPORT_FILE"
 log_with_timestamp "Log file: $LOG_FILE"
@@ -245,10 +257,14 @@ validate_structure() {
     local filename_issues_count=0
     
     if command -v xmllint &> /dev/null; then
-        # Use proper file iteration to handle filenames with spaces
+        # Use temp file approach for bash 3.x compatibility
+        # This avoids bus errors from process substitution on bash 3.2
+        local temp_xml_list=$(mktemp)
+        find "$base_dir" -name "*.xml" -print0 > "$temp_xml_list"
+
         while IFS= read -r -d '' xml_file; do
             local filename=$(basename "$xml_file")
-            
+
             # Test the file with our enhanced validation
             if ! validate_xml_file "$xml_file"; then
                 # Categorize the type of issue
@@ -262,8 +278,10 @@ validate_structure() {
                 fi
                 invalid_count=$((invalid_count + 1))
             fi
-        done < <(find "$base_dir" -name "*.xml" -print0)
-        
+        done < "$temp_xml_list"
+
+        rm -f "$temp_xml_list"
+
         if [[ $invalid_count -eq 0 ]]; then
             log_with_timestamp "    ✓ All XML files are valid"
         else
@@ -289,7 +307,9 @@ is_hidden_file() {
     fi
 
     # Check file size (must be <= 10 bytes)
-    local file_size=$(wc -c < "$file" 2>/dev/null || echo "999")
+    # Note: tr -d ' ' ensures bash 3.x compatibility by trimming whitespace from wc output
+    local file_size=$(wc -c < "$file" 2>/dev/null | tr -d ' ')
+    file_size=${file_size:-999}
     if [[ $file_size -gt 10 ]]; then
         return 1  # Not hidden
     fi
@@ -306,6 +326,7 @@ is_hidden_file() {
 }
 
 # Function to detect hidden managed package content
+# Bash 3.x compatible - uses simple variables instead of associative arrays
 detect_hidden_managed_content() {
     local base_dir="$1"
     local report_file="$2"
@@ -322,15 +343,21 @@ detect_hidden_managed_content() {
         "components"
     )
 
-    # Arrays to store results
-    declare -A hidden_components_by_type
-    declare -A hidden_files_by_type
-    declare -A hidden_size_by_type
-    declare -A component_details
+    # Simple variables for each type (bash 3.x compatible - no associative arrays)
+    local lwc_hidden_components=0 lwc_hidden_files=0 lwc_hidden_size=0
+    local aura_hidden_components=0 aura_hidden_files=0 aura_hidden_size=0
+    local classes_hidden_components=0 classes_hidden_files=0 classes_hidden_size=0
+    local triggers_hidden_components=0 triggers_hidden_files=0 triggers_hidden_size=0
+    local pages_hidden_components=0 pages_hidden_files=0 pages_hidden_size=0
+    local components_hidden_components=0 components_hidden_files=0 components_hidden_size=0
 
     local total_hidden_components=0
     local total_hidden_files=0
     local total_hidden_size=0
+
+    # Temp file for storing component details (bash 3.x workaround for associative arrays)
+    local temp_details=$(mktemp)
+    trap "rm -f '$temp_details'" EXIT
 
     # Scan each directory type
     for dir_type in "${scan_dirs[@]}"; do
@@ -346,26 +373,36 @@ detect_hidden_managed_content() {
         local type_hidden_files=0
         local type_hidden_size=0
 
-        # Find all subdirectories (components)
-        while IFS= read -r -d '' component_dir; do
+        # Use for loop with glob pattern instead of find with process substitution
+        # This avoids bus errors on bash 3.2
+        for component_dir in "$full_dir"/*/; do
+            # Skip if no matches (glob didn't expand)
+            [[ -d "$component_dir" ]] || continue
+
             local component_name=$(basename "$component_dir")
             local component_hidden_files=0
             local component_total_files=0
             local component_size=0
             local all_files_hidden=true
 
-            # Check all files in the component
-            while IFS= read -r -d '' file; do
+            # Check all files in the component using glob pattern
+            for file in "$component_dir"/*; do
+                # Skip if no matches (glob didn't expand)
+                [[ -e "$file" ]] || continue
+                # Skip directories
+                [[ -f "$file" ]] || continue
+
                 component_total_files=$((component_total_files + 1))
 
                 if is_hidden_file "$file"; then
                     component_hidden_files=$((component_hidden_files + 1))
-                    local file_size=$(wc -c < "$file" 2>/dev/null || echo "0")
+                    local file_size=$(wc -c < "$file" 2>/dev/null | tr -d ' ')
+                    file_size=${file_size:-0}
                     component_size=$((component_size + file_size))
                 else
                     all_files_hidden=false
                 fi
-            done < <(find "$component_dir" -maxdepth 1 -type f -print0 2>/dev/null)
+            done
 
             # If component has hidden files, record it
             if [[ $component_hidden_files -gt 0 ]]; then
@@ -373,21 +410,25 @@ detect_hidden_managed_content() {
                 type_hidden_files=$((type_hidden_files + component_hidden_files))
                 type_hidden_size=$((type_hidden_size + component_size))
 
-                # Store component details for reporting
-                local detail_key="${dir_type}:${component_name}"
-                component_details["$detail_key"]="$component_hidden_files files, $component_size bytes"
-
+                # Store component details in temp file (bash 3.x workaround)
+                local hidden_marker=""
                 if [[ "$all_files_hidden" == true ]] && [[ $component_total_files -gt 0 ]]; then
-                    component_details["$detail_key"]="${component_details[$detail_key]} (ALL FILES HIDDEN)"
+                    hidden_marker=" (ALL FILES HIDDEN)"
                 fi
+                echo "${dir_type}|${component_name}|${component_hidden_files} files, ${component_size} bytes${hidden_marker}" >> "$temp_details"
             fi
-        done < <(find "$full_dir" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null)
+        done
 
-        # Store type-level statistics
+        # Store type-level statistics using simple variables
         if [[ $type_hidden_components -gt 0 ]]; then
-            hidden_components_by_type["$dir_type"]=$type_hidden_components
-            hidden_files_by_type["$dir_type"]=$type_hidden_files
-            hidden_size_by_type["$dir_type"]=$type_hidden_size
+            case "$dir_type" in
+                "lwc") lwc_hidden_components=$type_hidden_components; lwc_hidden_files=$type_hidden_files; lwc_hidden_size=$type_hidden_size ;;
+                "aura") aura_hidden_components=$type_hidden_components; aura_hidden_files=$type_hidden_files; aura_hidden_size=$type_hidden_size ;;
+                "classes") classes_hidden_components=$type_hidden_components; classes_hidden_files=$type_hidden_files; classes_hidden_size=$type_hidden_size ;;
+                "triggers") triggers_hidden_components=$type_hidden_components; triggers_hidden_files=$type_hidden_files; triggers_hidden_size=$type_hidden_size ;;
+                "pages") pages_hidden_components=$type_hidden_components; pages_hidden_files=$type_hidden_files; pages_hidden_size=$type_hidden_size ;;
+                "components") components_hidden_components=$type_hidden_components; components_hidden_files=$type_hidden_files; components_hidden_size=$type_hidden_size ;;
+            esac
 
             total_hidden_components=$((total_hidden_components + type_hidden_components))
             total_hidden_files=$((total_hidden_files + type_hidden_files))
@@ -421,43 +462,39 @@ detect_hidden_managed_content() {
         echo "Hidden Components Detected:" >> "$report_file"
         echo "" >> "$report_file"
 
-        # Report by type
-        for dir_type in "lwc" "aura" "classes" "triggers" "pages" "components"; do
-            local component_count=${hidden_components_by_type[$dir_type]:-0}
+        # Report by type using simple variables
+        local dir_types=("lwc" "aura" "classes" "triggers" "pages" "components")
+        local type_names=("LWC Components" "Aura Components" "Apex Classes" "Apex Triggers" "Visualforce Pages" "Visualforce Components")
+
+        for i in 0 1 2 3 4 5; do
+            local dir_type="${dir_types[$i]}"
+            local type_name="${type_names[$i]}"
+            local component_count=0
+
+            case "$dir_type" in
+                "lwc") component_count=$lwc_hidden_components ;;
+                "aura") component_count=$aura_hidden_components ;;
+                "classes") component_count=$classes_hidden_components ;;
+                "triggers") component_count=$triggers_hidden_components ;;
+                "pages") component_count=$pages_hidden_components ;;
+                "components") component_count=$components_hidden_components ;;
+            esac
 
             if [[ $component_count -gt 0 ]]; then
-                local file_count=${hidden_files_by_type[$dir_type]}
-                local size_bytes=${hidden_size_by_type[$dir_type]}
-
-                # Type name mapping
-                local type_name=""
-                case "$dir_type" in
-                    "lwc") type_name="LWC Components" ;;
-                    "aura") type_name="Aura Components" ;;
-                    "classes") type_name="Apex Classes" ;;
-                    "triggers") type_name="Apex Triggers" ;;
-                    "pages") type_name="Visualforce Pages" ;;
-                    "components") type_name="Visualforce Components" ;;
-                esac
-
                 echo "  $type_name with Hidden Content: $component_count" >> "$report_file"
 
-                # List up to 10 components per type
+                # List up to 10 components per type from temp file
                 local count=0
                 local max_display=10
 
-                for detail_key in "${!component_details[@]}"; do
-                    if [[ "$detail_key" == "$dir_type:"* ]]; then
-                        local comp_name="${detail_key#*:}"
-                        local comp_info="${component_details[$detail_key]}"
-
+                while IFS='|' read -r dtype comp_name comp_info; do
+                    if [[ "$dtype" == "$dir_type" ]]; then
                         if [[ $count -lt $max_display ]]; then
                             echo "    - $comp_name ($comp_info)" >> "$report_file"
                         fi
-
                         count=$((count + 1))
                     fi
-                done
+                done < "$temp_details"
 
                 if [[ $count -gt $max_display ]]; then
                     local remaining=$((count - max_display))
@@ -488,9 +525,13 @@ detect_hidden_managed_content() {
     fi
 
     echo "" >> "$report_file"
+
+    # Clean up temp file
+    rm -f "$temp_details"
 }
 
 # Function to remove hidden managed package content
+# Bash 3.x compatible - uses simple variables instead of associative arrays
 remove_hidden_managed_content() {
     local base_dir="$1"
     local report_file="$2"
@@ -524,17 +565,22 @@ remove_hidden_managed_content() {
         "components"
     )
 
-    # Arrays to store removal results
-    declare -A removed_components_by_type
-    declare -A removed_files_by_type
-    declare -A removed_size_by_type
-    declare -A skipped_components_by_type
-    declare -A removal_details
+    # Simple variables for each type (bash 3.x compatible - no associative arrays)
+    local lwc_removed=0 lwc_removed_files=0 lwc_removed_size=0 lwc_skipped=0
+    local aura_removed=0 aura_removed_files=0 aura_removed_size=0 aura_skipped=0
+    local classes_removed=0 classes_removed_files=0 classes_removed_size=0 classes_skipped=0
+    local triggers_removed=0 triggers_removed_files=0 triggers_removed_size=0 triggers_skipped=0
+    local pages_removed=0 pages_removed_files=0 pages_removed_size=0 pages_skipped=0
+    local components_removed=0 components_removed_files=0 components_removed_size=0 components_skipped=0
 
     local total_removed_components=0
     local total_removed_files=0
     local total_removed_size=0
     local total_skipped_components=0
+
+    # Temp file for storing removal details (bash 3.x workaround for associative arrays)
+    local temp_removal=$(mktemp)
+    trap "rm -f '$temp_removal'" EXIT
 
     # Scan each directory type
     for dir_type in "${scan_dirs[@]}"; do
@@ -551,26 +597,36 @@ remove_hidden_managed_content() {
         local type_removed_size=0
         local type_skipped_components=0
 
-        # Find all subdirectories (components)
-        while IFS= read -r -d '' component_dir; do
+        # Use for loop with glob pattern instead of find with process substitution
+        # This avoids bus errors on bash 3.2
+        for component_dir in "$full_dir"/*/; do
+            # Skip if no matches (glob didn't expand)
+            [[ -d "$component_dir" ]] || continue
+
             local component_name=$(basename "$component_dir")
             local component_files=0
             local component_hidden_files=0
             local component_size=0
             local all_files_hidden=true
 
-            # Check all files in the component
-            while IFS= read -r -d '' file; do
+            # Check all files in the component using glob pattern
+            for file in "$component_dir"/*; do
+                # Skip if no matches (glob didn't expand)
+                [[ -e "$file" ]] || continue
+                # Skip directories
+                [[ -f "$file" ]] || continue
+
                 component_files=$((component_files + 1))
 
                 if is_hidden_file "$file"; then
                     component_hidden_files=$((component_hidden_files + 1))
-                    local file_size=$(wc -c < "$file" 2>/dev/null || echo "0")
+                    local file_size=$(wc -c < "$file" 2>/dev/null | tr -d ' ')
+                    file_size=${file_size:-0}
                     component_size=$((component_size + file_size))
                 else
                     all_files_hidden=false
                 fi
-            done < <(find "$component_dir" -maxdepth 1 -type f -print0 2>/dev/null)
+            done
 
             # Only remove if ALL files are hidden
             if [[ "$all_files_hidden" == true ]] && [[ $component_files -gt 0 ]]; then
@@ -581,9 +637,8 @@ remove_hidden_managed_content() {
                 type_removed_files=$((type_removed_files + component_files))
                 type_removed_size=$((type_removed_size + component_size))
 
-                # Store removal details for reporting
-                local detail_key="${dir_type}:${component_name}"
-                removal_details["$detail_key"]="$component_files files, $component_size bytes"
+                # Store removal details in temp file (bash 3.x workaround)
+                echo "${dir_type}|${component_name}|${component_files} files, ${component_size} bytes" >> "$temp_removal"
 
                 log_with_timestamp "    ✓ Removed: $component_name ($component_files files, $component_size bytes)"
             elif [[ $component_hidden_files -gt 0 ]]; then
@@ -591,14 +646,18 @@ remove_hidden_managed_content() {
                 type_skipped_components=$((type_skipped_components + 1))
                 log_with_timestamp "    ⊗ Skipped: $component_name (has $component_hidden_files hidden files, $((component_files - component_hidden_files)) non-hidden files)"
             fi
-        done < <(find "$full_dir" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null)
+        done
 
-        # Store type-level statistics
+        # Store type-level statistics using simple variables
         if [[ $type_removed_components -gt 0 ]] || [[ $type_skipped_components -gt 0 ]]; then
-            removed_components_by_type["$dir_type"]=$type_removed_components
-            removed_files_by_type["$dir_type"]=$type_removed_files
-            removed_size_by_type["$dir_type"]=$type_removed_size
-            skipped_components_by_type["$dir_type"]=$type_skipped_components
+            case "$dir_type" in
+                "lwc") lwc_removed=$type_removed_components; lwc_removed_files=$type_removed_files; lwc_removed_size=$type_removed_size; lwc_skipped=$type_skipped_components ;;
+                "aura") aura_removed=$type_removed_components; aura_removed_files=$type_removed_files; aura_removed_size=$type_removed_size; aura_skipped=$type_skipped_components ;;
+                "classes") classes_removed=$type_removed_components; classes_removed_files=$type_removed_files; classes_removed_size=$type_removed_size; classes_skipped=$type_skipped_components ;;
+                "triggers") triggers_removed=$type_removed_components; triggers_removed_files=$type_removed_files; triggers_removed_size=$type_removed_size; triggers_skipped=$type_skipped_components ;;
+                "pages") pages_removed=$type_removed_components; pages_removed_files=$type_removed_files; pages_removed_size=$type_removed_size; pages_skipped=$type_skipped_components ;;
+                "components") components_removed=$type_removed_components; components_removed_files=$type_removed_files; components_removed_size=$type_removed_size; components_skipped=$type_skipped_components ;;
+            esac
 
             total_removed_components=$((total_removed_components + type_removed_components))
             total_removed_files=$((total_removed_files + type_removed_files))
@@ -629,40 +688,39 @@ remove_hidden_managed_content() {
             echo "Removed Components:" >> "$report_file"
             echo "" >> "$report_file"
 
-            # Report by type
-            for dir_type in "lwc" "aura" "classes" "triggers" "pages" "components"; do
-                local component_count=${removed_components_by_type[$dir_type]:-0}
+            # Report by type using simple variables
+            local dir_types=("lwc" "aura" "classes" "triggers" "pages" "components")
+            local type_names=("LWC" "Aura" "Apex Classes" "Apex Triggers" "Visualforce Pages" "Visualforce Components")
+
+            for i in 0 1 2 3 4 5; do
+                local dir_type="${dir_types[$i]}"
+                local type_name="${type_names[$i]}"
+                local component_count=0
+
+                case "$dir_type" in
+                    "lwc") component_count=$lwc_removed ;;
+                    "aura") component_count=$aura_removed ;;
+                    "classes") component_count=$classes_removed ;;
+                    "triggers") component_count=$triggers_removed ;;
+                    "pages") component_count=$pages_removed ;;
+                    "components") component_count=$components_removed ;;
+                esac
 
                 if [[ $component_count -gt 0 ]]; then
-                    # Type name mapping
-                    local type_name=""
-                    case "$dir_type" in
-                        "lwc") type_name="LWC" ;;
-                        "aura") type_name="Aura" ;;
-                        "classes") type_name="Apex Classes" ;;
-                        "triggers") type_name="Apex Triggers" ;;
-                        "pages") type_name="Visualforce Pages" ;;
-                        "components") type_name="Visualforce Components" ;;
-                    esac
-
                     echo "  $type_name:" >> "$report_file"
 
-                    # List up to 10 components per type
+                    # List up to 10 components per type from temp file
                     local count=0
                     local max_display=10
 
-                    for detail_key in "${!removal_details[@]}"; do
-                        if [[ "$detail_key" == "$dir_type:"* ]]; then
-                            local comp_name="${detail_key#*:}"
-                            local comp_info="${removal_details[$detail_key]}"
-
+                    while IFS='|' read -r dtype comp_name comp_info; do
+                        if [[ "$dtype" == "$dir_type" ]]; then
                             if [[ $count -lt $max_display ]]; then
                                 echo "    ✓ Removed $comp_name ($comp_info)" >> "$report_file"
                             fi
-
                             count=$((count + 1))
                         fi
-                    done
+                    done < "$temp_removal"
 
                     if [[ $count -gt $max_display ]]; then
                         local remaining=$((count - max_display))
@@ -706,6 +764,9 @@ remove_hidden_managed_content() {
     fi
 
     echo "" >> "$report_file"
+
+    # Clean up temp file
+    rm -f "$temp_removal"
 }
 
 # Generate statistics
