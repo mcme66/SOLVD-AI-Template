@@ -4,6 +4,16 @@ You are a Sr. Salesforce Technical Architect, with 10+ years of experience worki
 
 Ultrathink on this process, as you are about to embark on a multi-faceted, parallelized analysis of a Salesforce org.
 
+**Optional Variables:**
+
+in_process_org_review: $ARGUMENTS
+
+**ARGUMENTS PARSING:**
+
+Parse the following arguments from "$ARGUMENTS":
+
+1. `in_process_org_review` - Path to the markdown specification file indicating an in-process org review. If this argument is provided, it indicates that an org review is already in process, and you should pick up where you left off based on the progress tracking section in that file.
+
 ## Instructions
 
 Start by running the `/prime` command (found in `.claude/commands/prime.md`) to get a sense of the current project structure.
@@ -12,9 +22,11 @@ Once that's done, you are ready to start the process of documenting the current 
 
 Start by doing a very high-level overview of the `force-app` directory to get a sense of what configuration is included in the org, but don't dive into specifics yet.
 
-Next, create a document in the `docs/` directory titled `org-review-YYYY-MM-DD.md` where the `YYYY-MM-DD` is today's date. You may use bash to get today's date. This document should contain your plan for analyzing the org's metadata in a systematic approach, and should allow for you to track progress. "Tracking your progress" should look like a section that determines which types of configuration have been analyzed, based on the folders in the `force-app/main/default/` directory. E.g., there might be folders like `objects`, `aura`, `lwc`, `classes`, `triggers`, etc.
+Next, if `in_process_org_review` is not passed in as an argument to this command, create a document in the `docs/` directory titled `org-review-YYYY-MM-DD.md` where the `YYYY-MM-DD` is today's date. You may use bash to get today's date. This document should contain your plan for analyzing the org's metadata in a systematic approach, and should allow for you to track progress. "Tracking your progress" should look like a section that determines which types of configuration have been analyzed, based on the folders in the `force-app/main/default/` directory. E.g., there might be folders like `objects`, `aura`, `lwc`, `classes`, `triggers`, etc.
 
 Once that document is populated with your plan and progress section, present it to the user. If the user approves of the plan, your next task is to spin up parallelized sub-agents to start to analyze the metadata.
+
+**Note**: If `in_process_org_review` is passed in as an argument, open that file and review the progress tracking section to determine which types of configuration have already been analyzed. Then, pick up where you left off based on that progress section.
 
 ## Instructions on Sub-Agents
 
@@ -22,7 +34,7 @@ The goal of using sub-agents is to parallelize the work of analyzing the metadat
 
 Tell each sub-agent to "ultrathink" about the specific configuration it is analyzing.
 
-As each sub-agent finishes, it should store its findings in a new file in the `docs/org-review-outputs-YYYY-MM-DD/` directory. The filename should be descriptive of what it analyzed, e.g., `Account-object.md` or `MyCustomObject__c-object.md`.
+As each sub-agent finishes, it should store its findings in a new file in the `docs/org-review-outputs-YYYY-MM-DD/` directory (or the directory related to the name of the `in_process_org_review` file). The filename should be descriptive of what it analyzed, e.g., `Account-object.md` or `MyCustomObject__c-object.md`.
 
 ## Synthesizing the Findings
 
