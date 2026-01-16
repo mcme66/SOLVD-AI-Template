@@ -1,6 +1,37 @@
 {
   "permissions": {
-    "allow": ["Write", "MultiEdit", "Edit", "Bash", "SlashCommand(/prime)", "Skill(mermaid)"],
+    "allow": [
+      "Write",
+      "MultiEdit",
+      "Edit",
+      "SlashCommand(/prime)",
+      "Skill(mermaid)",
+      "WebSearch",
+      "WebFetch(domain:help.salesforce.com)",
+      "Bash(pandoc:*)",
+      "Bash(sf data query:*)",
+      "Bash(sf sobject describe:*)",
+      "Bash(grep:*)"
+    ],
+    "ask": [
+      "Bash(sf project deploy:*)",
+      "Bash(sf deploy:*)",
+      "Bash(sfdx force:source:deploy:*)",
+      "Bash(sfdx force:source:push:*)",
+      "Bash(sf project retrieve:*)",
+      "Bash(sfdx force:source:retrieve:*)",
+      "Bash(sf org delete:*)",
+      "Bash(sfdx force:org:delete:*)",
+      "Bash(sf apex run:*)",
+      "Bash(sfdx force:apex:execute:*)",
+      "Bash(sf data delete:*)",
+      "Bash(sfdx force:data:bulk:delete:*)",
+      "Bash(sf data import:*)",
+      "Bash(sfdx force:data:bulk:upsert:*)",
+      "mcp__asana__:*",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ],
     "deny": []
   }
 }
