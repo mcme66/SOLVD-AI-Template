@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "allow": ["Write", "MultiEdit", "Edit", "Bash"],
+    "allow": ["Write", "MultiEdit", "Edit", "Bash", "SlashCommand(/prime)", "Skill(mermaid)"],
     "deny": []
   }
 }
