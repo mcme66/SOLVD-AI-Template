@@ -11,7 +11,12 @@
       "Bash(pandoc:*)",
       "Bash(sf data query:*)",
       "Bash(sf sobject describe:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "mcp__asana__asana_get_task*:*",
+      "mcp__asana__asana_get_goal*:*",
+      "mcp__asana__asana_get_project*:*",
+      "mcp__asana__asana_search_task*:*",
+      "mcp__asana__asana_list_*:*"
     ],
     "ask": [
       "Bash(sf project deploy:*)",
@@ -30,8 +35,13 @@
       "Bash(sfdx force:data:bulk:upsert:*)",
       "mcp__asana__:*",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "mcp__asana__asana_create_*:*",
+      "mcp__asana__asana_update_*:*",
+      "mcp__asana__asana_set_*:*",
+      "mcp__asana__asana_add_*:*",
+      "mcp__asana__asana_remove_*:*"
     ],
-    "deny": []
+    "deny": ["mcp__asana__asana_delete_*:*"]
   }
 }
