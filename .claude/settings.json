@@ -8,10 +8,10 @@
       "Skill(mermaid)",
       "WebSearch",
       "WebFetch(domain:help.salesforce.com)",
-      "WebFetch(developer.salesforce.com/**)",
-      "WebFetch(help.salesforce.com/**)",
-      "WebFetch(trailhead.salesforce.com/**)",
-      "WebFetch(salesforce.stackexchange.com/**)",
+      "WebFetch(domain:developer.salesforce.com/**)",
+      "WebFetch(domain:help.salesforce.com/**)",
+      "WebFetch(domain:trailhead.salesforce.com/**)",
+      "WebFetch(domain:salesforce.stackexchange.com/**)",
       "Bash(pandoc:*)",
       "Bash(sf data query:*)",
       "Bash(sf sobject describe:*)",
@@ -43,7 +43,6 @@
       "mcp__asana__asana_list_*:*"
     ],
     "ask": [
-      
       "Bash(sfdx force:source:push:*)",
       "Bash(sf project retrieve:*)",
       "Bash(sfdx force:source:retrieve:*)",
@@ -108,8 +107,7 @@
       "Bash(sf data delete:*)",
       "Bash(sfdx force:data:bulk:delete:*)",
       "Bash(sf data import:*)",
-      "Bash(sfdx force:data:bulk:upsert:*)",
-      "WebFetch"
+      "Bash(sfdx force:data:bulk:upsert:*)"
     ],
     "disableBypassPermissionsMode": "disable"
   }
