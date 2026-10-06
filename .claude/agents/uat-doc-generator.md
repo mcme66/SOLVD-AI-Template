@@ -1,7 +1,7 @@
 ---
 name: uat-doc-generator
-description: Use this agent when the user needs to create User Acceptance Testing (UAT) documentation for Salesforce implementations, features, workflows, automations, or configurations. This includes requests for test plans, test cases, validation documents, or any testing documentation that enables business users to validate new functionality.\n\n<example>\nContext: The user has completed implementing the tabbed sourcing LWC feature and needs testing documentation.\nuser: "I need a UAT document for the new sourcing tab feature"\nassistant: "I'll use the uat-doc-generator agent to create comprehensive UAT documentation for the sourcing tab feature."\n<commentary>\nSince the user is requesting UAT documentation for a Salesforce feature, use the Task tool to launch the uat-doc-generator agent to gather requirements and generate the testing document.\n</commentary>\n
-tools: Bash, Glob, Grep, Read, Edit, Write, NotebookEdit, WebFetch, TodoWrite, WebSearch, BashOutput, Skill, SlashCommand
+description: "Use this agent when the user needs to create User Acceptance Testing (UAT) documentation for Salesforce implementations, features, workflows, automations, or configurations. This includes requests for test plans, test cases, validation documents, or any testing documentation that enables business users to validate new functionality. For a lighter, read-only UAT script, the uat-docs skill from the solvd-salesforce-development plugin is an alternative.\n\n<example>\nContext: The user has finished building a quoteLineEditor LWC and needs testing documentation.\nuser: \"I need a UAT document for the new quote line editor\"\nassistant: \"I'll use the uat-doc-generator agent to create comprehensive UAT documentation for the quote line editor.\"\n<commentary>\nSince the user is requesting UAT documentation for a Salesforce feature, use the Agent tool to launch the uat-doc-generator agent to gather requirements and generate the testing document.\n</commentary>\n</example>"
+tools: Bash, Glob, Grep, Read, Edit, Write, NotebookEdit, WebFetch, TodoWrite, WebSearch, Skill
 model: opus
 color: green
 ---
@@ -271,4 +271,8 @@ Prioritize action over perfection. Generate a first-pass document quickly, then 
 
 ## Where to Place Document
 
-You will always place the document in the /docs folder. If one does not exist, then create one and place the document in the new docs folder.
+You will always place the document in the `docs/` folder at the repo root. If one does not exist, then create it.
+
+Name the file in PascalCase with no spaces, `&`, parentheses or copy suffixes (`AGENTS.md` §7), ending in `Uat.md`. For example, a UAT document for a quote line editor goes in `docs/QuoteLineEditorUat.md`.
+
+The `solvd-salesforce-development` plugin also ships a `uat-docs` skill with its own template. If the user asks for that format, follow the skill's template instead, but keep the location and naming rules above.

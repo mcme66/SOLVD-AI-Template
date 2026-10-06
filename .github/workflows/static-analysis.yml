@@ -1,0 +1,98 @@
+name: Static Analysis
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # Refresh PRs carry org metadata as-is (existing lint/PMD debt), so they skip the changed-file style checks, but only
+  # when opened by a maintainer listed in the TRUSTED_REFRESH_AUTHORS repo or org variable (a JSON array of GitHub
+  # logins). A `refresh/*` branch from anyone else gets the full checks.
+  TRUSTED_REFRESH: ${{ startsWith(github.head_ref, 'refresh/') && contains(fromJSON(vars.TRUSTED_REFRESH_AUTHORS || '[]'), github.event.pull_request.user.login) }}
+
+jobs:
+  lint-format-test:
+    name: Lint, format & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Prettier (changed files only; org XML is excluded by .prettierignore)
+        if: env.TRUSTED_REFRESH != 'true'
+        run: |
+          git diff -z --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD \
+            | grep -zE '\.(cls|trigger|js|mjs|html|css|json|md|yml|yaml|cmp|page|component)$' \
+            | xargs -0 -r npx prettier --check --ignore-unknown
+      - name: ESLint (changed LWC/Aura files only; existing org code has lint debt)
+        if: env.TRUSTED_REFRESH != 'true'
+        run: |
+          git diff -z --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD \
+            | grep -zE '/(lwc|aura)/.*\.js$' \
+            | xargs -0 -r npx eslint
+      - run: npm test
+      - run: bash scripts/ci/check-api-version.test.sh
+
+  # Opt-in: set the PROD_API_VERSION repo variable (e.g. 67.0) to fail PRs into main that add metadata above
+  # Production's API version. Mostly useful with the multi-environment flow (docs/optional/MultiEnvironment.md),
+  # where UAT sandboxes on a preview release produce higher versions.
+  prod-api-version:
+    name: Production API version
+    if: ${{ vars.PROD_API_VERSION != '' && github.base_ref == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Changed metadata must not exceed Production's API version
+        run: |
+          git diff -z --name-only --diff-filter=ACMR origin/main...HEAD -- 'force-app/**/*-meta.xml' \
+            | xargs -0 -r bash scripts/ci/check-api-version.sh "${{ vars.PROD_API_VERSION }}"
+
+  apex-pmd:
+    name: Apex static analysis (PMD)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Changed Apex
+        id: changed
+        if: env.TRUSTED_REFRESH != 'true'
+        run: |
+          git diff -z --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.cls' '*.trigger' > "$RUNNER_TEMP/apex-files"
+          echo "count=$(tr -cd '\0' < "$RUNNER_TEMP/apex-files" | wc -c)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.count > 0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/setup-java@v4
+        if: steps.changed.outputs.count > 0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Salesforce CLI + Code Analyzer
+        if: steps.changed.outputs.count > 0
+        run: |
+          npm install --global @salesforce/cli
+          sf plugins install code-analyzer
+      - name: Run PMD on changed Apex
+        if: steps.changed.outputs.count > 0
+        run: |
+          mapfile -d '' files < "$RUNNER_TEMP/apex-files"
+          args=()
+          for f in "${files[@]}"; do args+=(-t "$f"); done
+          sf code-analyzer run -w . "${args[@]}" -r pmd:Recommended -s 2 -f pmd-results.html -f pmd-results.json
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.changed.outputs.count > 0
+        with:
+          name: pmd-results
+          path: pmd-results.*

@@ -1,0 +1,54 @@
+name: Claude Code Review
+
+# Needs the CLAUDE_CODE_OAUTH_TOKEN secret; without it the job skips with a notice.
+# Setup: docs/setup/ClaudeCodeReview.md. Tune what it flags in .github/claude-review-checklist.md.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    branches: [main]
+
+jobs:
+  claude-review:
+    # Skip refresh PRs opened by a maintainer listed in the TRUSTED_REFRESH_AUTHORS variable; anyone else's are reviewed.
+    if: ${{ !(startsWith(github.head_ref, 'refresh/') && contains(fromJSON(vars.TRUSTED_REFRESH_AUTHORS || '[]'), github.event.pull_request.user.login)) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    steps:
+      - name: Check for the Claude token
+        id: token
+        env:
+          TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN isn't set, so the Claude review is skipped. See docs/setup/ClaudeCodeReview.md."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.present == 'true'
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        if: steps.token.outputs.present == 'true'
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Prints the whole session to the job log, so a review that posts nothing is easy to diagnose.
+          show_full_output: true
+          prompt: |
+            You are reviewing PR #${{ github.event.pull_request.number }} in ${{ github.repository }}, a Salesforce SFDX repo.
+            Base branch: ${{ github.base_ref }}. Head branch: ${{ github.head_ref }}.
+            Do the review yourself in this session; do not launch subagents.
+            1. Read AGENTS.md, every file in docs/standards/, and .github/claude-review-checklist.md.
+            2. Run `gh pr view ${{ github.event.pull_request.number }}` and `gh pr diff ${{ github.event.pull_request.number }}`.
+            3. Review the PR strictly against those documents and the checklist.
+            4. Post an inline comment with mcp__github_inline_comment__create_inline_comment for each concrete issue.
+            5. ALWAYS finish by posting exactly one summary comment with
+               `gh pr comment ${{ github.event.pull_request.number }} --body "..."`, grouped as Blocking / Should fix / Nits,
+               even when there are no issues.
+          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Read,Grep,Glob"'

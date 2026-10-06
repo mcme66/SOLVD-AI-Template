@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Generate a new Metadata Manifest file based on git diffs
-# Uses the sgd SFDX CLI plugin
+# Uses the sfdx-git-delta CLI plugin (install once: sf plugins install sfdx-git-delta)
 # https://github.com/scolladon/sfdx-git-delta
 
 # After the build is generated, you will notice a git-ignored directory created at destructiveChanges/ (if you are
@@ -43,9 +43,9 @@ if [[ $FROM == '' ]]; then
     exit 1
 fi
 
-sfdx sgd:source:delta --to $TO \
-					  --from $FROM \
-					  --output '.'
+sf sgd source delta --to "$TO" \
+					  --from "$FROM" \
+					  --output-dir '.'
 
 mv package/package.xml manifest/$MANIFEST
 rm -r package/

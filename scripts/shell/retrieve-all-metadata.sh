@@ -27,7 +27,7 @@ TEMP_DIR="$LOGS_DIR/temp"
 
 # Default values
 ORG_ALIAS=""
-API_VERSION=""
+export API_VERSION=""  # exported so generate-package-xml.js writes manifests at the same version
 WAIT_TIME="60"
 DRY_RUN=false
 PARALLEL=false
