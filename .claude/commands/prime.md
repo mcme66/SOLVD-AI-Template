@@ -1,10 +1,16 @@
-# Context Window Prime - Overall Planner
+# Context Prime
 
 **RUN**
 
-- git ls-files
+- `git branch --show-current`
+- `git log --oneline -5`
+- `git diff --name-only main...HEAD` (use the base branch named in `AGENTS.md`)
+- `ls client-context`
 
 **READ**
 
-- README.md
-- llm-txts/claude-code-fresh-tutorials.md
+- `AGENTS.md` (especially the **Project** section)
+- `docs/SDLC.md`
+- `docs/standards/apex.md`
+- `docs/standards/naming.md`
+- `README.md`

@@ -92,7 +92,7 @@ This directory contains a suite of scripts for comprehensive Salesforce metadata
 
 ```bash
 # Just discover metadata types
-./utils/metadata-discovery.sh -o my-org -a 61.0
+./utils/metadata-discovery.sh -o my-org -a 67.0
 
 # Generate package.xml files only
 node ./utils/generate-package-xml.js --input metadata-types.json

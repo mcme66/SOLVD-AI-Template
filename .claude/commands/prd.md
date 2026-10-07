@@ -24,4 +24,4 @@ Review the PRD file at `prd_file` to understand the feature requirements, contex
 - Once a step has been accomplished by a sub agent and is ready for review, prepare a thorough testing plan to present to the user, if a testing plan isn't in place in the PRD.
 - As a step is accomplished and a user has verified it, update the PRD file and mark the step as complete. You can then ask the user for final review BEFORE proceeding to the next step.
 - Once you move to the next phase / step in the PRD, make sure to update it, and spin up a new sub agent to tackle the next step.
-- If during the course of the PRD or implementation, you create or update Apex test classes, DO NOT deploy them to any Salesforce org and don't try and run tests. Any deployment of source or configuration to a given Salesforce is strictly prohibited, and considered a human, manual task at this time.
+- Follow `AGENTS.md` and `docs/standards/` for every step. You may deploy to and run Apex tests in the developer's sandbox (pass `-o <alias>`) when the user agrees; commit what you deploy on the feature branch. Production deploys are a human task, and the deploy guard blocks them.

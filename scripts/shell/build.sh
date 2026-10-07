@@ -8,7 +8,6 @@ BUILDS_DIRECTORY=builds
 TMP_LOCATION=tmp_output
 SOURCE_LOCATION=force-app
 
-# TODO: Fill this out
 print_usage() {
     echo "Usage: $0 [-n -f -s]" >&2
     echo
@@ -33,10 +32,10 @@ if [[ $DEPLOYMENT_NAME == '' ]]; then
     exit 1
 fi
 
-sfdx force:source:convert -r $SOURCE_LOCATION \
-                          -x $MANIFEST_LOCATION \
-                          -d $TMP_LOCATION \
-                          -n $DEPLOYMENT_NAME
+sf project convert source --root-dir "$SOURCE_LOCATION" \
+                          --manifest "$MANIFEST_LOCATION" \
+                          --output-dir "$TMP_LOCATION" \
+                          --package-name "$DEPLOYMENT_NAME"
 
 zip -r -X $DEPLOYMENT_NAME.zip $TMP_LOCATION
 

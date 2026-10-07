@@ -9,3 +9,9 @@
 .vscode
 
 coverage/
+
+# Prettier's XML plugin (xmlWhitespaceSensitivity: "ignore") pads quoted literals inside <formula> and
+# <errorConditionFormula> (CASE(TEXT(x), "Days", ...) becomes CASE(TEXT(x), " Days " , ...)), re-wraps rich text in
+# Path guidance, and re-wraps <description> past the 255-char limit, silently corrupting retrieved metadata. Keep org
+# XML byte-identical to what `sf project retrieve` returns; Prettier still formats Apex and LWC.
+force-app/**/*.xml

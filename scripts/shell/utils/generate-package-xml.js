@@ -29,6 +29,24 @@ function escapeXml(str) {
 const metadataConfig = require('./metadata-config.json');
 
 /**
+ * API version for generated manifests: API_VERSION env var, else sourceApiVersion from sfdx-project.json in the
+ * working directory, else 61.0.
+ * @returns {string}
+ */
+function resolveApiVersion() {
+  if (process.env.API_VERSION) return process.env.API_VERSION;
+  try {
+    const project = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'sfdx-project.json'), 'utf8'));
+    if (project.sourceApiVersion) return project.sourceApiVersion;
+  } catch (e) {
+    // fall through to the default
+  }
+  return '61.0';
+}
+
+const API_VERSION = resolveApiVersion();
+
+/**
  * Filter out unsupported metadata types based on configuration
  * @param {Array} metadataTypes - Array of metadata type objects
  * @returns {Object} - Object with filtered and excluded arrays
@@ -465,7 +483,7 @@ function generatePackageXml(metadataTypes, chunkName, chunkDescription) {
     xml += '    </types>\n';
   }
 
-  xml += '    <version>61.0</version>\n';
+  xml += `    <version>${API_VERSION}</version>\n`;
   xml += '</Package>';
 
   return xml;
@@ -485,7 +503,7 @@ function generateSpecialPackageXml(purpose, items) {
     xml += '    </types>\n';
   }
 
-  xml += '    <version>61.0</version>\n';
+  xml += `    <version>${API_VERSION}</version>\n`;
   xml += '</Package>';
 
   return xml;
