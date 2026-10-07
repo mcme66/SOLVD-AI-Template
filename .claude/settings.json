@@ -2,7 +2,10 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "extraKnownMarketplaces": {
     "solvd-cloud": {
-      "source": { "source": "github", "repo": "SOLVD-cloud/solvd-claude-plugins" },
+      "source": {
+        "source": "github",
+        "repo": "SOLVD-cloud/solvd-claude-plugins"
+      },
       "autoUpdate": true
     }
   },
@@ -50,19 +53,7 @@
       "mcp__asana__asana_list_*"
     ],
     "ask": [
-      "Bash(sf apex run *)",
-      "Bash(sf data create *)",
-      "Bash(sf data update *)",
-      "Bash(sf data upsert *)",
-      "Bash(sf data delete *)",
-      "Bash(sf data import *)",
       "Bash(sf org delete *)",
-      "Bash(sfdx force:apex:execute *)",
-      "Bash(sfdx force:data:record:create *)",
-      "Bash(sfdx force:data:record:update *)",
-      "Bash(sfdx force:data:record:delete *)",
-      "Bash(sfdx force:data:bulk:upsert *)",
-      "Bash(sfdx force:data:bulk:delete *)",
       "Bash(sfdx force:org:delete *)",
       "Bash(rm *)",
       "mcp__claude_ai_Asana__create_*",

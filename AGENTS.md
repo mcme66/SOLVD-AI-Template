@@ -60,10 +60,10 @@ Use `/prep-pr`. It builds the manifest, checks the standards, runs the tests, an
 ## 6. Salesforce CLI rules
 
 - **Deploy freely to non-production orgs:** sandboxes, scratch orgs and Developer Edition orgs. Check-only validation is fine against any org (`sf project deploy validate`, `sf project deploy start --dry-run`).
-- **Production deploys are blocked for agents** by the deploy guard in the `solvd-salesforce-development` plugin, which this repo enables in `.claude/settings.json`. It checks the target org live; if it can't tell what the target is, it asks the user. Don't try to get around it. A person runs Production deploys.
+- **Production deploys are blocked for agents** by the org guard in the `solvd-salesforce-development` plugin, which this repo enables in `.claude/settings.json`. It checks the target org live; if it can't tell what the target is, it asks the user. Don't try to get around it. A person runs Production deploys.
 - **Always pass `-o <alias>` explicitly** on deploys and retrievals.
 - **If you deploy something to an org, commit the same change on your branch** and open a PR in the same session, so the repo doesn't drift from the org.
-- Anonymous Apex and data changes (`sf apex run`, `sf data create|update|upsert|delete|import`) always ask the user first. Run them only when the user asked for that change.
+- **Anonymous Apex and data writes** (`sf apex run`, `sf data create|update|upsert|delete|import`, non-GET `sf api request rest`) run without a prompt against non-production orgs. Against Production, the same guard asks the user to approve each one. Run them only for a change the user asked for, and never use them to work around a failing deploy.
 - Retrieve what you changed in the org: `sf project retrieve start -o <alias> -x manifest/feat/<feature>.xml`.
 - Org XML is never reformatted: `.prettierignore` excludes `force-app/**/*.xml`, because Prettier corrupts formulas and validation rules. Apex and LWC are formatted on commit.
 

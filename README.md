@@ -41,7 +41,7 @@ sf org login web -a <client>-dev-<initials> -r https://test.salesforce.com
 sf config set target-org=<client>-dev-<initials>
 ```
 
-The first time you start Claude Code in the repo and trust the folder, it registers SOLVD's plugin marketplace and enables the `solvd-salesforce-development` plugin (see `.claude/settings.json`). The plugin brings the Apex/LWC standards skill, the trigger scaffold, test-writing agents, and the **deploy guard**: agents can deploy to sandboxes, scratch orgs and Developer Edition orgs, and are blocked from Production.
+The first time you start Claude Code in the repo and trust the folder, it registers SOLVD's plugin marketplace and enables the `solvd-salesforce-development` plugin (see `.claude/settings.json`). The plugin brings the Apex/LWC standards skill, the trigger scaffold, test-writing agents, and the **org guard**: agents can deploy, run anonymous Apex and write data freely in sandboxes, scratch orgs and Developer Edition orgs. In Production, deploys are blocked and anonymous Apex and data writes need your approval each time.
 
 ## How work flows
 
